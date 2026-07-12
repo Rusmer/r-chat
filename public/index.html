@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>R-CHAT</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg-void:#000000;
+  --bg-panel:#050505;
+  --bg-panel-alt:#0a0a0a;
+  --bg-hover:#121212;
+  --purple:#a561ff;
+  --purple-bright:#c896ff;
+  --purple-dim:#5e3aa6;
+  --purple-deep:#180f28;
+  --border:#1c1c1c;
+  --border-bright:#332a44;
+  --text:#d6d1e0;
+  --text-dim:#68607c;
+  --text-dimmer:#3a3548;
+  --green:#5dffa0;
+  --red:#ff5c6c;
+  --yellow:#ffd15c;
+}
+
+*{box-sizing:border-box; margin:0; padding:0; border-radius:0 !important;}
+
+html,body{
+  height:100%;
+  background:var(--bg-void);
+  color:var(--text);
+  font-family:'JetBrains Mono', monospace;
+  overflow:hidden;
+}
+
+::selection{ background:var(--purple-dim); color:#fff; }
+
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-track{ background:var(--bg-panel); }
+::-webkit-scrollbar-thumb{ background:var(--border-bright); }
+::-webkit-scrollbar-thumb:hover{ background:var(--purple-dim); }
+
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(165,97,255,0.012) 0px,
+    rgba(165,97,255,0.012) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index:999;
+}
+
+.app{
+  display:grid;
+  grid-template-columns: 72px 220px 1fr 220px;
+  grid-template-rows: 1fr 26px;
+  height:100vh;
+  width:100vw;
+}
+
+/* ================= SERVER RAIL ================= */
+.server-rail{
+  grid-row: 1 / 2;
+  background:var(--bg-void);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:14px 0;
+  gap:10px;
+  overflow-y:auto;
+}
+.server-btn{
+  width:44px; height:44px;
+  border:1px solid var(--border-bright);
+  background:var(--bg-panel);
+  color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700;
+  cursor:pointer;
+  position:relative;
+  letter-spacing:0.5px;
+  transition:border-color .12s, color .12s, background .12s;
+}
+.server-btn:hover{ border-color:var(--purple); color:var(--purple-bright); background:var(--bg-hover); }
+.server-btn.active{
+  border-color:var(--purple);
+  color:var(--purple-bright);
+  background:var(--purple-deep);
+}
+.server-btn.active::before{
+  content:"";
+  position:absolute; left:-15px; top:50%; transform:translateY(-50%);
+  width:3px; height:26px;
+  background:var(--purple);
+}
+.server-sep{
+  width:28px; height:1px;
+  background:var(--border-bright);
+  margin:2px 0;
+}
+.server-add{
+  width:44px; height:44px;
+  border:1px dashed var(--border-bright);
+  background:transparent;
+  color:var(--text-dimmer);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+  cursor:pointer;
+}
+.server-add:hover{ color:var(--purple); border-color:var(--purple); }
+
+/* ================= CHANNEL LIST ================= */
+.channel-col{
+  grid-row: 1 / 2;
+  background:var(--bg-panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.brand{
+  padding:14px 16px 12px 16px;
+  border-bottom:1px solid var(--border);
+}
+.brand-logo{
+  font-size:15px; font-weight:800; letter-spacing:1px;
+  color:var(--purple-bright);
+}
+.brand-logo span{ color:var(--text-dimmer); }
+.brand-path{
+  margin-top:4px;
+  font-size:10px;
+  color:var(--text-dimmer);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+.channel-scroll{ flex:1; overflow-y:auto; padding:10px 0; }
+
+.chan-group-label{
+  font-size:10px;
+  color:var(--text-dimmer);
+  padding:10px 14px 4px 14px;
+  letter-spacing:1px;
+  display:flex; align-items:center; gap:6px;
+}
+.chan-group-label::after{
+  content:"";
+  flex:1; height:1px;
+  background:var(--border);
+}
+
+.chan-item{
+  padding:6px 14px 6px 18px;
+  font-size:12.5px;
+  color:var(--text-dim);
+  cursor:pointer;
+  display:flex; align-items:center; gap:6px;
+  border-left:2px solid transparent;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chan-item:hover{ background:var(--bg-hover); color:var(--text); }
+.chan-item.active{
+  background:var(--purple-deep);
+  color:var(--purple-bright);
+  border-left:2px solid var(--purple);
+}
+.chan-hash{ color:var(--text-dimmer); }
+.chan-item.active .chan-hash{ color:var(--purple); }
+
+.user-footer{
+  border-top:1px solid var(--border);
+  padding:8px 10px;
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg-panel-alt);
+}
+.user-avatar{
+  width:30px; height:30px;
+  background:var(--purple-deep);
+  border:1px solid var(--purple-dim);
+  color:var(--purple-bright);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700;
+  flex-shrink:0;
+}
+.user-meta{ min-width:0; flex:1; }
+.user-name{ font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.user-tag{ font-size:10px; color:var(--green); }
+.user-icon-btn{
+  width:22px; height:22px;
+  border:1px solid var(--border-bright);
+  color:var(--text-dim);
+  background:transparent;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; cursor:pointer;
+}
+.user-icon-btn:hover{ color:var(--purple-bright); border-color:var(--purple); }
+
+/* ================= MAIN CHAT ================= */
+.chat-col{
+  grid-row: 1 / 2;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  background:var(--bg-void);
+}
+.chat-header{
+  height:46px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center;
+  padding:0 16px;
+  gap:10px;
+  flex-shrink:0;
+}
+.chat-header .chan-hash{ color:var(--purple); font-size:15px; }
+.chat-header .chan-title{ font-size:13px; font-weight:700; color:var(--text); }
+.chat-header .chan-desc{
+  font-size:11px; color:var(--text-dimmer);
+  border-left:1px solid var(--border);
+  padding-left:10px; margin-left:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chat-header .spacer{flex:1;}
+.chat-header .header-icon{
+  font-size:11px; color:var(--text-dim); cursor:pointer; padding:4px 8px; border:1px solid transparent;
+}
+.chat-header .header-icon:hover{ border-color:var(--border-bright); color:var(--purple-bright); }
+
+.msg-log{
+  flex:1;
+  overflow-y:auto;
+  padding:16px 18px;
+  display:flex; flex-direction:column;
+  gap:2px;
+}
+.log-boot{
+  color:var(--text-dimmer);
+  font-size:11px;
+  margin-bottom:14px;
+  line-height:1.6;
+  border-left:2px solid var(--border);
+  padding-left:10px;
+}
+.log-boot .ok{ color:var(--green); }
+.log-boot .warn{ color:var(--yellow); }
+
+.msg-row{
+  display:flex;
+  gap:10px;
+  padding:5px 8px;
+  font-size:12.5px;
+  line-height:1.55;
+  align-items:flex-start;
+}
+.msg-row:hover{ background:var(--bg-panel); }
+.msg-time{ color:var(--text-dimmer); flex-shrink:0; user-select:none; }
+.msg-time::before{content:"["; }
+.msg-time::after{content:"]"; }
+.msg-body{ min-width:0; word-break:break-word; }
+.msg-user{ color:var(--purple-bright); font-weight:700; }
+.msg-user.self{ color:var(--green); }
+.msg-arrow{ color:var(--text-dimmer); margin:0 4px; }
+.msg-text{ color:var(--text); }
+
+.day-divider{
+  display:flex; align-items:center; gap:10px;
+  color:var(--text-dimmer);
+  font-size:10px;
+  margin:14px 0 8px 0;
+}
+.day-divider::before, .day-divider::after{
+  content:""; flex:1; height:1px; background:var(--border);
+}
+
+.input-bar{
+  border-top:1px solid var(--border);
+  padding:10px 16px 14px 16px;
+  flex-shrink:0;
+}
+.input-wrap{
+  display:flex; align-items:center;
+  border:1px solid var(--border-bright);
+  background:var(--bg-panel);
+  padding:9px 12px;
+  gap:8px;
+}
+.input-wrap:focus-within{ border-color:var(--purple); }
+.prompt-chr{ color:var(--purple); font-weight:700; user-select:none; }
+.input-wrap input{
+  flex:1;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12.5px;
+}
+.input-wrap input::placeholder{ color:var(--text-dimmer); }
+.send-hint{
+  font-size:10px; color:var(--text-dimmer);
+  border:1px solid var(--border-bright);
+  padding:2px 6px;
+  flex-shrink:0;
+}
+
+/* ================= MEMBERS ================= */
+.members-col{
+  grid-row: 1 / 2;
+  background:var(--bg-panel);
+  border-left:1px solid var(--border);
+  overflow-y:auto;
+  padding:14px 0;
+}
+.member-group{
+  font-size:10px;
+  color:var(--text-dimmer);
+  padding:8px 14px 4px 14px;
+  letter-spacing:1px;
+}
+.member-row{
+  display:flex; align-items:center; gap:8px;
+  padding:6px 14px;
+  cursor:pointer;
+}
+.member-row:hover{ background:var(--bg-hover); }
+.member-avatar{
+  width:24px; height:24px;
+  background:var(--bg-panel-alt);
+  border:1px solid var(--border-bright);
+  color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700;
+  position:relative;
+  flex-shrink:0;
+}
+.status-sq{
+  position:absolute; right:-3px; bottom:-3px;
+  width:8px; height:8px;
+  border:1px solid var(--bg-panel);
+}
+.status-sq.online{ background:var(--green); }
+.status-sq.idle{ background:var(--yellow); }
+.status-sq.offline{ background:var(--bg-void); border:1px solid var(--text-dimmer); }
+.status-sq.dnd{ background:var(--red); }
+.member-name{ font-size:12px; color:var(--text-dim); }
+.member-row:hover .member-name{ color:var(--text); }
+.member-role{ font-size:9px; color:var(--purple-dim); }
+
+/* ================= STATUS BAR ================= */
+.status-bar{
+  grid-column: 1 / -1;
+  grid-row: 2 / 3;
+  background:var(--purple-deep);
+  border-top:1px solid var(--purple-dim);
+  display:flex; align-items:center;
+  padding:0 12px;
+  font-size:10.5px;
+  color:var(--purple-bright);
+  gap:16px;
+  letter-spacing:0.3px;
+}
+.status-bar .seg{ display:flex; align-items:center; gap:5px; }
+.status-bar .dot{ width:6px; height:6px; background:var(--green); }
+.status-bar .dot.warn{ background:var(--yellow); }
+.status-bar .divider{ color:var(--purple-dim); }
+.status-bar .spacer{ flex:1; }
+.status-mode{
+  background:var(--purple);
+  color:var(--bg-void);
+  padding:0 8px;
+  height:100%;
+  display:flex; align-items:center;
+  font-weight:700;
+}
+
+.channel-col, .chat-col, .members-col{ min-height:0; }
+
+@media (max-width: 900px){
+  .members-col{ display:none; }
+  .app{ grid-template-columns: 60px 180px 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="server-rail" id="serverRail"></div>
+
+  <div class="channel-col">
+    <div class="brand">
+      <div class="brand-logo">R-CHAT<span>_</span></div>
+      <div class="brand-path" id="serverPath">~/servers/general-hub</div>
+    </div>
+    <div class="channel-scroll" id="channelScroll"></div>
+    <div class="user-footer">
+      <div class="user-avatar" id="myAvatar">YOU</div>
+      <div class="user-meta">
+        <div class="user-name" id="myName">user</div>
+        <div class="user-tag">● online</div>
+      </div>
+      <button class="user-icon-btn" title="mute">M</button>
+      <button class="user-icon-btn" title="settings">S</button>
+    </div>
+  </div>
+
+  <div class="chat-col">
+    <div class="chat-header">
+      <span class="chan-hash" id="headerHash">#</span>
+      <span class="chan-title" id="headerTitle">general</span>
+      <span class="chan-desc" id="headerDesc">общий канал сервера</span>
+      <div class="spacer"></div>
+      <div class="header-icon">[members]</div>
+      <div class="header-icon">[pinned]</div>
+      <div class="header-icon">[search]</div>
+    </div>
+
+    <div class="msg-log" id="msgLog"></div>
+
+    <div class="input-bar">
+      <div class="input-wrap">
+        <span class="prompt-chr">&gt;</span>
+        <input id="msgInput" type="text" placeholder="message #general_" autocomplete="off" />
+        <span class="send-hint">ENTER</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="members-col" id="membersCol"></div>
+
+  <div class="status-bar">
+    <div class="status-mode" id="statusMode">-- NORMAL --</div>
+    <div class="seg"><span class="dot" id="connDot"></span><span id="connLabel">connecting...</span></div>
+    <div class="divider">|</div>
+    <div class="seg" id="pingSeg">ping: --ms</div>
+    <div class="divider">|</div>
+    <div class="seg" id="chanSeg">server: --</div>
+    <div class="spacer"></div>
+    <div class="seg" id="clockSeg">00:00:00</div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   R-CHAT frontend
+   Talks to a Cloudflare Worker (+ D1) backend if API_BASE is set below.
+   If unset, or if the backend is unreachable, falls back to local demo
+   data automatically so the UI still works standalone.
+   ===================================================================== */
+
+const API_BASE = ""; // <-- set to your deployed worker URL, e.g. "https://r-chat-api.yoursubdomain.workers.dev"
+
+let USE_MOCK = !API_BASE;
+
+/* ---------- demo/fallback data (mirrors worker/schema.sql) ---------- */
+const MOCK_SERVERS = [
+  { id:'s1', code:'R', name:'general-hub', path:'~/servers/general-hub' },
+  { id:'s2', code:'D', name:'dev-team', path:'~/servers/dev-team' },
+  { id:'s3', code:'G', name:'gaming', path:'~/servers/gaming' },
+  { id:'s4', code:'M', name:'music-lab', path:'~/servers/music-lab' },
+];
+const MOCK_CHANNELS = {
+  s1: { text:[{id:'c1',name:'general',description:'общий канал сервера'},{id:'c2',name:'random',description:'обо всём и ни о чём'},{id:'c3',name:'announcements',description:'важные объявления'}],
+        voice:[{id:'v1',name:'lounge'},{id:'v2',name:'meeting-room'}] },
+  s2: { text:[{id:'c4',name:'backend',description:'серверная часть'},{id:'c5',name:'frontend',description:'клиентская часть'},{id:'c6',name:'deploys',description:'логи и релизы'}],
+        voice:[{id:'v3',name:'standup'}] },
+  s3: { text:[{id:'c7',name:'lobby',description:'сбор группы'},{id:'c8',name:'clips',description:'лучшие моменты'}],
+        voice:[{id:'v4',name:'squad-1'},{id:'v5',name:'squad-2'}] },
+  s4: { text:[{id:'c9',name:'tracks',description:'делимся треками'}],
+        voice:[{id:'v6',name:'listening-room'}] },
+};
+const MOCK_MEMBERS = {
+  s1: [{name:'root_admin',role:'ADMIN',status:'online'},{name:'kernel_dev',role:'MOD',status:'online'},{name:'null_ptr',role:'',status:'idle'},{name:'stack_overflow',role:'',status:'dnd'},{name:'ghost_proc',role:'',status:'offline'},{name:'byte_runner',role:'',status:'offline'}],
+  s2: [{name:'root_admin',role:'ADMIN',status:'online'},{name:'compiler_err',role:'',status:'idle'},{name:'segfault',role:'',status:'offline'}],
+  s3: [{name:'frag_master',role:'',status:'online'},{name:'afk_check',role:'',status:'idle'},{name:'respawn',role:'',status:'offline'}],
+  s4: [{name:'dj_static',role:'',status:'online'},{name:'lofi_beats',role:'',status:'offline'}],
+};
+const MOCK_MESSAGES = {
+  c1: [{user:'root_admin',time:1750000000000,text:'запустил новый канал для тестов, всем добро пожаловать'},
+       {user:'kernel_dev',time:1750000100000,text:'принято, конфиг подтянул'},
+       {user:'null_ptr',time:1750000200000,text:'кто-нибудь смотрел логи с ночного деплоя?'},
+       {user:'kernel_dev',time:1750000300000,text:'да, всё чисто, 0 ошибок'}],
+  c2: [{user:'ghost_proc',time:1750000400000,text:'кофе кончился, это критическая ошибка'},
+       {user:'byte_runner',time:1750000500000,text:'сочувствую, у меня то же самое'}],
+  c3: [{user:'root_admin',time:1750000600000,text:'плановые работы на сервере сегодня в 23:00'}],
+  c4: [{user:'root_admin',time:1750000700000,text:'мёрджим ветку feature/auth в main'},
+       {user:'compiler_err',time:1750000800000,text:'ревью отправил, два комментария'}],
+  c5: [], c6: [{user:'root_admin',time:1750000900000,text:'деплой v1.4.2 завершён успешно'}],
+  c7: [{user:'frag_master',time:1750001000000,text:'го катка через 10 минут'}],
+  c8: [], c9: [{user:'dj_static',time:1750001100000,text:'новый трек в закрепе, послушайте'}],
+};
+let mockMsgCounter = 100;
+
+/* ---------- state ---------- */
+let servers = [];
+let channelsByServer = {};   // serverId -> {text:[], voice:[]}
+let membersByServer = {};    // serverId -> []
+let currentServer = null;
+let currentChannel = null;
+let lastMsgTime = 0;
+const myName = 'user_' + Math.random().toString(16).slice(2, 6);
+
+/* ---------- api helpers ---------- */
+async function apiGet(path){
+  const res = await fetch(API_BASE + path);
+  if(!res.ok) throw new Error('bad status ' + res.status);
+  return res.json();
+}
+async function apiPost(path, body){
+  const res = await fetch(API_BASE + path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('bad status ' + res.status);
+  return res.json();
+}
+
+function setConnStatus(){
+  const dot = document.getElementById('connDot');
+  const label = document.getElementById('connLabel');
+  if(USE_MOCK){
+    dot.classList.add('warn');
+    label.textContent = 'demo mode (no backend)';
+  } else {
+    dot.classList.remove('warn');
+    label.textContent = 'connected';
+  }
+}
+
+/* ---------- data loaders (try API, fall back to mock) ---------- */
+async function loadServers(){
+  if(!USE_MOCK){
+    try{ return await apiGet('/api/servers'); }
+    catch(e){ console.warn('backend unreachable, switching to demo data:', e.message); USE_MOCK = true; }
+  }
+  return MOCK_SERVERS;
+}
+async function loadChannels(serverId){
+  if(!USE_MOCK){
+    try{ return await apiGet(`/api/servers/${serverId}/channels`); }
+    catch(e){ USE_MOCK = true; }
+  }
+  return MOCK_CHANNELS[serverId] || { text:[], voice:[] };
+}
+async function loadMembers(serverId){
+  if(!USE_MOCK){
+    try{ return await apiGet(`/api/servers/${serverId}/members`); }
+    catch(e){ USE_MOCK = true; }
+  }
+  return MOCK_MEMBERS[serverId] || [];
+}
+async function loadMessages(channelId, after){
+  if(!USE_MOCK){
+    try{ return await apiGet(`/api/channels/${channelId}/messages?after=${after}`); }
+    catch(e){ USE_MOCK = true; }
+  }
+  const all = MOCK_MESSAGES[channelId] || [];
+  return all.filter(m => m.time > after);
+}
+async function sendMessage(channelId, user, text){
+  if(!USE_MOCK){
+    try{ return await apiPost(`/api/channels/${channelId}/messages`, { user, text }); }
+    catch(e){ USE_MOCK = true; }
+  }
+  const msg = { user, text, time: Date.now() + (mockMsgCounter++) };
+  if(!MOCK_MESSAGES[channelId]) MOCK_MESSAGES[channelId] = [];
+  MOCK_MESSAGES[channelId].push(msg);
+  return msg;
+}
+
+/* ---------- render: servers ---------- */
+const serverRail = document.getElementById('serverRail');
+function renderServers(){
+  serverRail.innerHTML = '';
+  servers.forEach(s=>{
+    const btn = document.createElement('div');
+    btn.className = 'server-btn' + (s.id===currentServer ? ' active':'');
+    btn.textContent = '[' + s.code + ']';
+    btn.title = s.name;
+    btn.onclick = ()=> switchServer(s.id);
+    serverRail.appendChild(btn);
+  });
+  const sep = document.createElement('div');
+  sep.className = 'server-sep';
+  serverRail.appendChild(sep);
+  const add = document.createElement('div');
+  add.className = 'server-add';
+  add.textContent = '+';
+  add.title = 'добавить сервер';
+  serverRail.appendChild(add);
+}
+
+/* ---------- render: channels ---------- */
+const channelScroll = document.getElementById('channelScroll');
+const serverPathEl = document.getElementById('serverPath');
+function renderChannels(){
+  channelScroll.innerHTML = '';
+  const server = servers.find(s=>s.id===currentServer);
+  serverPathEl.textContent = server.path;
+
+  const grp = channelsByServer[currentServer];
+
+  const textLabel = document.createElement('div');
+  textLabel.className = 'chan-group-label';
+  textLabel.textContent = 'TEXT';
+  channelScroll.appendChild(textLabel);
+
+  grp.text.forEach(c=>{
+    const item = document.createElement('div');
+    item.className = 'chan-item' + (c.id===currentChannel ? ' active':'');
+    item.innerHTML = '<span class="chan-hash">#</span><span>'+c.name+'</span>';
+    item.onclick = ()=> switchChannel(c.id);
+    channelScroll.appendChild(item);
+  });
+
+  const voiceLabel = document.createElement('div');
+  voiceLabel.className = 'chan-group-label';
+  voiceLabel.textContent = 'VOICE';
+  channelScroll.appendChild(voiceLabel);
+
+  grp.voice.forEach(v=>{
+    const item = document.createElement('div');
+    item.className = 'chan-item voice';
+    item.innerHTML = '<span class="chan-hash">))</span><span>'+v.name+'</span>';
+    channelScroll.appendChild(item);
+  });
+}
+
+/* ---------- render: members ---------- */
+const membersCol = document.getElementById('membersCol');
+function renderMembers(members){
+  membersCol.innerHTML = '';
+  const online = members.filter(m=>m.status==='online'||m.status==='idle'||m.status==='dnd');
+  const offline = members.filter(m=>m.status==='offline');
+
+  const onlineLabel = document.createElement('div');
+  onlineLabel.className = 'member-group';
+  onlineLabel.textContent = 'ONLINE — ' + online.length;
+  membersCol.appendChild(onlineLabel);
+  online.forEach(m=>membersCol.appendChild(memberRow(m)));
+
+  const offlineLabel = document.createElement('div');
+  offlineLabel.className = 'member-group';
+  offlineLabel.textContent = 'OFFLINE — ' + offline.length;
+  membersCol.appendChild(offlineLabel);
+  offline.forEach(m=>membersCol.appendChild(memberRow(m)));
+}
+function memberRow(m){
+  const row = document.createElement('div');
+  row.className = 'member-row';
+  const initials = m.name.slice(0,2).toUpperCase();
+  row.innerHTML = `
+    <div class="member-avatar">${initials}<span class="status-sq ${m.status}"></span></div>
+    <div>
+      <div class="member-name">${m.name}</div>
+      ${m.role ? '<div class="member-role">'+m.role+'</div>' : ''}
+    </div>
+  `;
+  return row;
+}
+
+/* ---------- render: header + messages ---------- */
+const headerTitle = document.getElementById('headerTitle');
+const headerDesc = document.getElementById('headerDesc');
+const msgLog = document.getElementById('msgLog');
+const msgInput = document.getElementById('msgInput');
+const chanSeg = document.getElementById('chanSeg');
+
+function getCurrentChannelObj(){
+  return channelsByServer[currentServer].text.find(c=>c.id===currentChannel);
+}
+function renderHeader(){
+  const c = getCurrentChannelObj();
+  headerTitle.textContent = c.name;
+  headerDesc.textContent = c.description || '';
+  msgInput.placeholder = 'message #' + c.name + '_';
+  const server = servers.find(s=>s.id===currentServer);
+  chanSeg.textContent = 'server: ' + server.name;
+}
+
+function messageRow(m, isSelf){
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  const time = new Date(m.time);
+  const t = [time.getHours(), time.getMinutes(), time.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const userClass = isSelf ? 'msg-user self' : 'msg-user';
+  row.innerHTML = `
+    <span class="msg-time">${t}</span>
+    <span class="msg-body"><span class="${userClass}">${escapeHtml(m.user)}</span><span class="msg-arrow">&gt;</span><span class="msg-text">${escapeHtml(m.text)}</span></span>
+  `;
+  return row;
+}
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function loadAndRenderMessages(){
+  msgLog.innerHTML = '';
+  const boot = document.createElement('div');
+  boot.className = 'log-boot';
+  boot.innerHTML = USE_MOCK
+    ? `connecting to #${getCurrentChannelObj().name}... <span class="warn">backend недоступен — demo режим</span>`
+    : `connecting to #${getCurrentChannelObj().name}...<br>handshake <span class="ok">ok</span> — history loaded — D1 <span class="ok">active</span>`;
+  msgLog.appendChild(boot);
+
+  const divider = document.createElement('div');
+  divider.className = 'day-divider';
+  divider.textContent = 'СЕГОДНЯ';
+  msgLog.appendChild(divider);
+
+  const msgs = await loadMessages(currentChannel, 0);
+  msgs.forEach(m=>msgLog.appendChild(messageRow(m, m.user===myName)));
+  lastMsgTime = msgs.length ? msgs[msgs.length-1].time : 0;
+  msgLog.scrollTop = msgLog.scrollHeight;
+  setConnStatus();
+}
+
+async function pollNewMessages(){
+  if(currentChannel === null) return;
+  const msgs = await loadMessages(currentChannel, lastMsgTime);
+  if(msgs.length){
+    msgs.forEach(m=>msgLog.appendChild(messageRow(m, m.user===myName)));
+    lastMsgTime = msgs[msgs.length-1].time;
+    msgLog.scrollTop = msgLog.scrollHeight;
+  }
+  setConnStatus();
+}
+
+/* ---------- navigation ---------- */
+async function switchServer(serverId){
+  currentServer = serverId;
+  channelsByServer[serverId] = channelsByServer[serverId] || await loadChannels(serverId);
+  currentChannel = channelsByServer[serverId].text[0].id;
+  renderServers();
+  renderChannels();
+  renderHeader();
+  await loadAndRenderMessages();
+  membersByServer[serverId] = await loadMembers(serverId);
+  renderMembers(membersByServer[serverId]);
+}
+async function switchChannel(channelId){
+  currentChannel = channelId;
+  renderChannels();
+  renderHeader();
+  await loadAndRenderMessages();
+}
+
+/* ---------- send message ---------- */
+msgInput.addEventListener('keydown', async (e)=>{
+  if(e.key === 'Enter'){
+    const val = msgInput.value.trim();
+    if(!val) return;
+    msgInput.value = '';
+    const msg = await sendMessage(currentChannel, myName, val);
+    msgLog.appendChild(messageRow(msg, true));
+    lastMsgTime = Math.max(lastMsgTime, msg.time);
+    msgLog.scrollTop = msgLog.scrollHeight;
+    setConnStatus();
+  }
+});
+
+/* ---------- clock / status bar ---------- */
+const clockSeg = document.getElementById('clockSeg');
+const pingSeg = document.getElementById('pingSeg');
+function tickClock(){
+  const now = new Date();
+  clockSeg.textContent = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+}
+setInterval(tickClock, 1000);
+setInterval(()=>{ pingSeg.textContent = 'ping: ' + (Math.floor(Math.random()*20)+8) + 'ms'; }, 4000);
+setInterval(pollNewMessages, 3000);
+tickClock();
+
+/* ---------- init ---------- */
+document.getElementById('myName').textContent = myName;
+document.getElementById('myAvatar').textContent = myName.slice(0,2).toUpperCase();
+
+(async function init(){
+  servers = await loadServers();
+  await switchServer(servers[0].id);
+})();
+</script>
+</body>
+</html>
