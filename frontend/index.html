@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R-Chat</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Серверы -->
+    <div class="servers">
+      <button class="server-btn active" data-server="default">DEF</button>
+      <button class="server-btn">SRV</button>
+      <button class="server-btn">+</button>
+    </div>
+
+    <!-- Каналы -->
+    <div class="channels">
+      <div class="channel-header"># Каналы</div>
+      <div class="channel-item active" data-channel="general">general</div>
+      <div class="channel-item" data-channel="random">random</div>
+      <div class="channel-item" data-channel="dev">dev</div>
+    </div>
+
+    <!-- Чат -->
+    <div class="chat-area">
+      <div class="chat-header"># general</div>
+      <div class="messages" id="messages">
+        <div class="message">
+          <span class="message-author">System</span>
+          <span class="message-time">12:00</span>
+          <div class="message-content">Добро пожаловать в R-Chat</div>
+        </div>
+      </div>
+      <div class="input-area">
+        <input type="text" class="message-input" id="messageInput" placeholder="> ввести сообщение...">
+      </div>
+    </div>
+
+    <!-- Юзеры -->
+    <div class="users">
+      <div class="users-header">👥 Онлайн</div>
+      <div class="user-item">❯ User123</div>
+      <div class="user-item">❯ Admin</div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
